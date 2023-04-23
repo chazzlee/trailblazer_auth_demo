@@ -152,6 +152,8 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.2)
     minitest (5.18.0)
+    minitest-line (0.6.5)
+      minitest (~> 5.0)
     msgpack (1.7.0)
     net-imap (0.3.4)
       date
@@ -295,6 +297,8 @@ DEPENDENCIES
   dry-validation
   importmap-rails
   jbuilder
+  minitest
+  minitest-line
   puma (~> 5.0)
   rails (~> 7.0.4, >= 7.0.4.3)
   redis (~> 4.0)
