@@ -1,5 +1,11 @@
 # frozen_string_literal: true
 
+class NotRandom
+  def self.urlsafe_base64(*)
+    "this is not random"
+  end
+end
+
 class AuthOperationTest < ActiveSupport::TestCase
   describe "Auth::Operation::CreateAccount" do
     it "accepts valid email and passwords" do
@@ -64,6 +70,51 @@ class AuthOperationTest < ActiveSupport::TestCase
         password_confirm: "password"
       })
       assert result.failure?
+    end
+
+    it "creates account and verify-account key" do
+      result = Auth::Operation::CreateAccount.wtf?({
+        email: "auth4@demo.test",
+        password: "password",
+        password_confirm: "password"
+      })
+      user = result[:user]
+      assert user.persisted?
+      assert result.success?
+
+      verify_account_token = VerifyAccountKey.find_by(user_id: user.id).key
+      assert_equal 43, verify_account_token.size
+    end
+
+    it "fails when inserting the same {verify_account_key} twice" do
+      options = {
+        email: "test@test.com",
+        password: "1234",
+        password_confirm: "1234",
+        secure_random: NotRandom
+      }
+      result = Auth::Operation::CreateAccount.wtf?(options)
+      assert result.success?
+      assert_equal "this is not random", result[:verify_account_key]
+
+      result = Auth::Operation::CreateAccount.wtf?(options.merge({email: "test2@test.com"}))
+      assert result.failure?
+      assert_equal "Please try again.", result[:error]
+    end
+
+    it "creates account and sends a welcome email" do
+      options = {
+        email: "test3@test.com",
+        password: "1234",
+        password_confirm: "1234",
+        secure_random: NotRandom
+      }
+      result = nil
+      assert_email 1 do
+        result = Auth::Operation::CreateAccount.wtf?(options)
+      end
+      assert result.success?
+      assert_match(/\/auth\/verify_account\/#{user.id}_#{verify_account_key.key}/, result[:email].body.to_s)
     end
   end
 end

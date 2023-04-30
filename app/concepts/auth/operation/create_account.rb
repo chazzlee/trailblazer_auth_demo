@@ -13,6 +13,26 @@ module Auth::Operation
     step :password_hash
     step :state
     step :save_account
+    step :generate_verify_account_key
+    step :save_verify_account_key
+    step :send_verify_account_email
+
+    def generate_verify_account_key(ctx, secure_random: SecureRandom, **)
+      ctx[:verify_account_key] = secure_random.urlsafe_base64(32)
+    end
+
+    def save_verify_account_key(ctx, verify_account_key:, user:, **)
+      VerifyAccountKey.create(user_id: user.id, key: verify_account_key)
+    rescue ActiveRecord::RecordNotUnique
+      ctx[:error] = "Please try again."
+      false
+    end
+
+    def send_verify_account_email(ctx, verify_account_key:, user:, **)
+      token = "#{user.id}_#{verify_account_key}"
+      ctx[:verify_account_token] = token
+      ctx[:email] = AuthMailer.with(email: user.email, verify_token: token).welcome_email.deliver_now
+    end
 
     def save_account(ctx, email:, password_hash:, state:, **)
       begin

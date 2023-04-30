@@ -1,0 +1,7 @@
+<body>
+  <h1>Welcome to example.com, <%= @email %></h1>
+  <p>
+    Please verify your account by clicking this link:
+    <%= link_to @verify_url, verify_account_url(token: @verify_token) %>.
+  </p>
+</body>
